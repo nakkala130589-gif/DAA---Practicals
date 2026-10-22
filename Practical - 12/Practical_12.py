@@ -1,36 +1,43 @@
-# Practical 11: Floyd-Warshall all-pairs shortest paths
-INF = float('inf')
-d = [
-    [0, 5, INF, 10],
-    [INF, 0, 3, INF],
-    [INF, INF, 0, 1],
-    [INF, INF, INF, 0],
+# Practical 12: Travelling Salesman using DP and bitmasking
+cost = [
+    [0, 10, 15, 20],
+    [10, 0, 35, 25],
+    [15, 35, 0, 30],
+    [20, 25, 30, 0],
 ]
-n = len(d)
-def show(matrix):
-    for row in matrix:
-        print("  " + " ".join(f"{x:>3}" if x != INF else "INF"
-                            for x in row))
-print("FLOYD-WARSHALL - STEP-BY-STEP DISTANCE UPDATES")
-print("Initial distance matrix:")
-show(d)
-for k in range(n):
-    print(f"Intermediate vertex k = {k}:")
-    changes = []
-    for i in range(n):
-        for j in range(n):
-            if d[i][k] != INF and d[k][j] != INF:
-                alt = d[i][k] + d[k][j]
-                if alt < d[i][j]:
-                    old = "INF" if d[i][j] == INF else str(d[i][j])
-                    changes.append(f"  d[{i}][{j}]: {old} -> {alt} via {k}")
-                    d[i][j] = alt
-    if changes:
-        print("\n".join(changes))
-    else:
-        print("  No distances improved")
-    show(d)
-if any(d[i][i] < 0 for i in range(n)):
-    raise ValueError("Negative cycle detected")
-print("Final shortest-path distance matrix:")
-show(d)
+n = len(cost)
+full = (1 << n) - 1
+INF = float('inf')
+dp = {(1, 0): 0}
+predecessor = {}
+print("TRAVELLING SALESMAN - BITMASK DP TRACE")
+print("Start: mask=0001, city=0, cost=0")
+for mask in range(1, full + 1):
+    if not (mask & 1):
+        continue
+    for u in range(n):
+        if (mask, u) not in dp:
+            continue
+        current = dp[(mask, u)]
+        for v in range(1, n):
+            if mask & (1 << v):
+                continue
+            new_mask = mask | (1 << v)
+            candidate = current + cost[u][v]
+            key = (new_mask, v)
+            if candidate < dp.get(key, INF):
+                dp[key] = candidate
+                predecessor[key] = (mask, u)
+                print(f"Update: {mask:04b} at {u} -> {new_mask:04b} at {v}; "
+                      f"cost = {candidate}")
+end = min(range(1, n), key=lambda v: dp[(full, v)] + cost[v][0])
+best = dp[(full, end)] + cost[end][0]
+route = []
+state = (full, end)
+while state != (1, 0):
+    route.append(state[1])
+    state = predecessor[state]
+route = [0] + list(reversed(route)) + [0]
+print(f"Return from city {end} to 0: +{cost[end][0]}")
+print("Optimal tour:", " -> ".join(map(str, route)))
+print("Minimum tour cost =", best)
